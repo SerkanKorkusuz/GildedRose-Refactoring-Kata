@@ -1,14 +1,70 @@
-export class Item {
-  name: string;
-  sellIn: number;
-  quality: number;
+import {Item} from "@/item";
 
-  constructor(name, sellIn, quality) {
-    this.name = name;
-    this.sellIn = sellIn;
-    this.quality = quality;
-  }
+const MIN_QUALITY = 0;
+const SULFURAS_QUALITY = 80;
+const MAX_QUALITY = 50;
+const isLessThanMax = (quality) => quality < MAX_QUALITY;
+const isMoreThanMin = (quality) => quality > MIN_QUALITY;
+const decreaseQuality = (quality) => isMoreThanMin(quality) ? quality - 1 : MIN_QUALITY;
+const increaseQuality = (quality) => isLessThanMax(quality) ? quality + 1 : MAX_QUALITY;
+const isLessThanSellIn = (sellIn) => sellIn < 0;
+const decreaseSellIn = (sellIn) => sellIn - 1;
+
+const updateAgedBrie = (item: Item): Item => {
+  item.quality = increaseQuality(item.quality);
+  item.quality = isLessThanSellIn(item.sellIn) ? increaseQuality(item.quality) : item.quality;
+  item.sellIn = decreaseSellIn(item.sellIn);
+
+  return item;
 }
+
+const updateBackstage = (item: Item): Item => {
+  let quality: number = increaseQuality(item.quality);
+  quality = item.sellIn <= 10 ? increaseQuality(quality) : quality;
+  quality = item.sellIn <= 5 ? increaseQuality(quality) : quality;
+  quality = item.sellIn === 0 ? 0 : quality;
+  item.quality = quality;
+  item.sellIn = decreaseSellIn(item.sellIn);
+
+  return item;
+}
+
+const updateSulfuras = (item: Item): Item => {
+  item.quality = SULFURAS_QUALITY;
+  item.sellIn = decreaseSellIn(item.sellIn);
+
+  return item;
+}
+
+const updateConjured = (item: Item): Item => {
+  item = updateGeneralItem(item);
+  item = updateGeneralItem(item);
+  item.sellIn = decreaseSellIn(item.sellIn);
+
+  return item
+}
+
+const updateGeneralItem = (item: Item): Item => {
+  item.quality = decreaseQuality(item.quality);
+  item.quality = item.sellIn <= 0 ? decreaseQuality(item.quality) : item.quality;
+
+  return item;
+}
+
+const updateDefaultItem = (item: Item): Item => {
+  item = updateGeneralItem(item);
+  item.sellIn = decreaseSellIn(item.sellIn);
+
+  return item;
+}
+
+const ITEM_UPDATES = {
+  'Aged Brie': updateAgedBrie,
+  'Backstage passes to a TAFKAL80ETC concert': updateBackstage,
+  'Sulfuras, Hand of Ragnaros': updateSulfuras,
+  'Conjured Mana Cake': updateConjured,
+  'Default': updateDefaultItem,
+};
 
 export class GildedRose {
   items: Array<Item>;
@@ -17,51 +73,10 @@ export class GildedRose {
     this.items = items;
   }
 
-  updateQuality() {
-    for (let i = 0; i < this.items.length; i++) {
-      if (this.items[i].name != 'Aged Brie' && this.items[i].name != 'Backstage passes to a TAFKAL80ETC concert') {
-        if (this.items[i].quality > 0) {
-          if (this.items[i].name != 'Sulfuras, Hand of Ragnaros') {
-            this.items[i].quality = this.items[i].quality - 1
-          }
-        }
-      } else {
-        if (this.items[i].quality < 50) {
-          this.items[i].quality = this.items[i].quality + 1
-          if (this.items[i].name == 'Backstage passes to a TAFKAL80ETC concert') {
-            if (this.items[i].sellIn < 11) {
-              if (this.items[i].quality < 50) {
-                this.items[i].quality = this.items[i].quality + 1
-              }
-            }
-            if (this.items[i].sellIn < 6) {
-              if (this.items[i].quality < 50) {
-                this.items[i].quality = this.items[i].quality + 1
-              }
-            }
-          }
-        }
-      }
-      if (this.items[i].name != 'Sulfuras, Hand of Ragnaros') {
-        this.items[i].sellIn = this.items[i].sellIn - 1;
-      }
-      if (this.items[i].sellIn < 0) {
-        if (this.items[i].name != 'Aged Brie') {
-          if (this.items[i].name != 'Backstage passes to a TAFKAL80ETC concert') {
-            if (this.items[i].quality > 0) {
-              if (this.items[i].name != 'Sulfuras, Hand of Ragnaros') {
-                this.items[i].quality = this.items[i].quality - 1
-              }
-            }
-          } else {
-            this.items[i].quality = this.items[i].quality - this.items[i].quality
-          }
-        } else {
-          if (this.items[i].quality < 50) {
-            this.items[i].quality = this.items[i].quality + 1
-          }
-        }
-      }
+  updateQuality(): Array<Item> {
+    for (let item of this.items) {
+      let updateItem = ITEM_UPDATES[item.name] || ITEM_UPDATES['Default'];
+      item = updateItem(item);
     }
 
     return this.items;
